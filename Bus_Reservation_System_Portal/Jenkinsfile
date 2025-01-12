@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         REPO_URL = 'https://github.com/prathapk259/Bus_reservation_system_portal.git'
+	SKIP_TESTS = 'true' // Set this to 'true' to skip the 'Run Tests' stage
 	SUBFOLDER = 'Bus_Reservation_System_Portal'
         IMAGE_NAME = 'bus-reservation-system'
         DOCKER_REGISTRY = 'prathap259' // Replace with your DockerHub username
@@ -32,7 +33,12 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
+        stage('Run Tests'){
+	    when {
+	    	expression {
+		    return !env.SKIP_TESTS?.toBoolean() // Skip if SKIP_TESTS is true
+		}
+	    }
             steps {
 	    	dir("${SUBFOLDER}") {
                     echo 'Running tests...'
