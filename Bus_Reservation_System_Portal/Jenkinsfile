@@ -1,0 +1,83 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO_URL = 'https://github.com/prathapk259/Bus_reservation_system_portal.git'
+	SUBFOLDER = 'Bus_Reservation_System_Portal'
+        IMAGE_NAME = 'bus-reservation-system'
+        DOCKER_REGISTRY = 'prathap259' // Replace with your DockerHub username
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                echo 'Cloning the repository...'
+                git branch: 'main', url: "${REPO_URL}"
+            }
+        }
+	stage('Navigate to Subfolder'){
+	    steps {
+	    	dir("${SUBFOLDER}") {
+		    echo "Moved to subfolder: ${SUBFOLDER}"
+		}
+	    }
+	}
+
+        stage('Build Project') {
+            steps {
+	    	dir("${SUBFOLDER}") {
+                    echo 'Building the project...'
+                    sh 'mvn clean package -DskipTests'
+		}
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+	    	dir("${SUBFOLDER}") {
+                    echo 'Running tests...'
+                    sh 'mvn test'
+		}
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+	    	dir("${SUBFOLDER}") {
+                    echo 'Building Docker image...'
+                    sh 'docker build -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest .'
+		}
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                echo 'Pushing Docker image to registry...'
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    sh 'echo $PASSWORD | docker login -u $USERNAME --password-stdin'
+                    sh 'docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest'
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying application...'
+                // Add deployment steps here (e.g., Kubernetes, Docker Compose, etc.)
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished.'
+        }
+        success {
+            echo 'Pipeline succeeded!'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
+}
+
